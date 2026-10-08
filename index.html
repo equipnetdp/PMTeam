@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PM Team Selection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Teko:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--cyan:#00f3ff;--pink:#ff0055;--yellow:#ffe600;--ink:#03040b;--panel:rgba(5,9,24,.86);--muted:#9daabd}
+    *{box-sizing:border-box} html,body{margin:0;min-height:100%;background:#02030a;color:white;font-family:Teko,Arial,sans-serif;overflow-x:hidden}
+    body{min-height:100vh;background:radial-gradient(circle at 50% 20%,#101e39 0,#060914 35%,#02030a 78%)}
+    button{font:inherit}.app{position:relative;min-height:100vh;display:grid;grid-template-rows:auto 1fr auto;isolation:isolate;overflow:hidden}
+    .scanlines,.noise,.vignette{position:fixed;inset:0;pointer-events:none;z-index:40}
+    .scanlines{background:repeating-linear-gradient(to bottom,rgba(255,255,255,.025) 0 1px,transparent 1px 4px);mix-blend-mode:screen}
+    .noise{opacity:.05;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E")}
+    .vignette{box-shadow:inset 0 0 170px 45px #000}
+    .bg-layer{position:fixed;inset:0;z-index:-3;background-size:cover;background-position:center;transition:opacity .65s ease,transform 1s ease;opacity:0;transform:scale(1.04)}
+    .bg-layer.show{opacity:.52;transform:scale(1)}.bg-layer:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(2,3,10,.94),rgba(2,3,10,.35) 50%,rgba(2,3,10,.92)),linear-gradient(0deg,#02030a 0,transparent 40%,rgba(2,3,10,.7) 100%)}
+    #mapBg{position:fixed;inset:0;z-index:-4;display:grid;place-items:center;opacity:.72;transition:opacity .55s ease}.city-mode #mapBg{opacity:0}
+    .world-map{width:min(1050px,92vw);filter:drop-shadow(0 0 10px rgba(0,243,255,.7));animation:drift 6s ease-in-out infinite}.world-map path{fill:rgba(0,243,255,.07);stroke:var(--cyan);stroke-width:1.2;vector-effect:non-scaling-stroke}.route{fill:none!important;stroke:var(--pink)!important;stroke-dasharray:7 12;animation:dash 7s linear infinite}.target{fill:none;stroke:var(--yellow);stroke-width:3;transform-origin:center;animation:pulse 1.3s ease-out infinite}
+    @keyframes drift{50%{transform:translateY(-8px)}}@keyframes dash{to{stroke-dashoffset:-190}}@keyframes pulse{0%{opacity:1;transform:scale(.45)}100%{opacity:0;transform:scale(1.5)}}
+    header{position:relative;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:22px;padding:16px clamp(16px,3vw,42px);border-bottom:2px solid rgba(0,243,255,.4);background:linear-gradient(180deg,rgba(3,5,15,.97),rgba(3,5,15,.73));box-shadow:0 4px 22px rgba(0,243,255,.16)}
+    .brand small,.eyebrow{font-family:'Press Start 2P',monospace;font-size:clamp(7px,.7vw,10px);color:var(--pink);letter-spacing:2px}.brand h1{margin:8px 0 0;font-family:'Press Start 2P',monospace;font-size:clamp(13px,1.7vw,25px);line-height:1.55;text-shadow:3px 3px 0 #79102f,0 0 16px rgba(255,0,85,.75)}
+    .top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}.arcade-btn{cursor:pointer;padding:11px 14px;border:2px solid var(--cyan);color:var(--cyan);background:#07101b;box-shadow:inset 0 0 14px rgba(0,243,255,.13),4px 4px 0 #003d54;font-family:'Press Start 2P';font-size:8px;letter-spacing:.5px;transition:.18s}.arcade-btn:hover,.arcade-btn:focus-visible{color:#021318;background:var(--cyan);transform:translate(-1px,-1px);box-shadow:5px 5px 0 #ff0055;outline:none}.arcade-btn.alt{border-color:var(--yellow);color:var(--yellow);box-shadow:4px 4px 0 #6d5200}.arcade-btn.alt:hover{background:var(--yellow);color:#111}
+    .main{position:relative;z-index:3;display:grid;grid-template-columns:minmax(280px,.85fr) minmax(360px,1.15fr);gap:clamp(16px,2.4vw,34px);align-items:stretch;padding:clamp(18px,3vw,42px);min-height:0}
+    .panel{position:relative;background:linear-gradient(145deg,rgba(9,15,33,.92),rgba(3,7,18,.82));border:2px solid rgba(0,243,255,.72);clip-path:polygon(0 0,calc(100% - 24px) 0,100% 24px,100% 100%,24px 100%,0 calc(100% - 24px));box-shadow:0 0 30px rgba(0,243,255,.14),inset 0 0 40px rgba(0,0,0,.5);backdrop-filter:blur(6px)}
+    .portrait-panel{display:flex;flex-direction:column;min-height:500px;overflow:hidden}.portrait-wrap{position:relative;flex:1;min-height:330px;overflow:hidden;background:radial-gradient(circle at 50% 40%,rgba(0,243,255,.16),transparent 55%),linear-gradient(145deg,#10182d,#050711)}
+    .portrait-wrap:after{content:"";position:absolute;inset:auto 0 0;height:42%;background:linear-gradient(transparent,rgba(2,3,10,.95))}.portrait{width:100%;height:100%;object-fit:cover;object-position:center 20%;filter:saturate(1.05) contrast(1.05);transition:opacity .25s,transform .5s}.portrait.swap{opacity:0;transform:translateX(-18px) scale(1.04)}
+    .portrait-video{width:100%;height:100%;object-fit:cover;object-position:center 20%;filter:saturate(1.05) contrast(1.05)}.video-tag{position:absolute;z-index:2;top:15px;right:15px;padding:6px 9px;background:rgba(255,0,85,.85);font-family:'Press Start 2P';font-size:7px;color:#fff;letter-spacing:1px;animation:recBlink 1.4s step-end infinite}@keyframes recBlink{50%{opacity:.35}}
+    .stage-tag{position:absolute;z-index:2;top:15px;left:15px;padding:8px 11px;background:rgba(2,3,10,.82);border-left:4px solid var(--yellow);font-family:'Press Start 2P';font-size:8px;color:var(--yellow)}
+    .identity{position:relative;padding:20px 22px 24px;margin-top:-65px;z-index:3}.fighter-name{margin:0;text-transform:uppercase;font-size:clamp(39px,5vw,74px);line-height:.88;letter-spacing:1px;text-shadow:3px 3px 0 #09101d,5px 5px 0 var(--pink)}.role{display:inline-block;margin-top:13px;padding:4px 10px;border:1px solid var(--cyan);color:var(--cyan);font-family:'Press Start 2P';font-size:8px;line-height:1.6;background:rgba(0,243,255,.06)}
+    .dossier{padding:22px 24px;overflow:auto;max-height:calc(100vh - 245px)}.dossier-head{display:flex;justify-content:space-between;gap:15px;align-items:flex-start;border-bottom:1px solid rgba(255,255,255,.12);padding-bottom:13px;margin-bottom:15px}.dossier h2{font-family:'Press Start 2P';font-size:13px;color:var(--yellow);line-height:1.5;margin:3px 0}.record{font-family:'Press Start 2P';font-size:7px;color:var(--muted)}
+    .special{padding:14px 16px;margin:13px 0 17px;border:1px solid var(--pink);background:linear-gradient(90deg,rgba(255,0,85,.2),rgba(255,0,85,.03));box-shadow:inset 4px 0 0 var(--pink)}.special .label{font-family:'Press Start 2P';font-size:7px;color:var(--pink)}.special strong{display:block;font-size:23px;line-height:1.1;margin-top:7px;color:white}
+    .stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stat{padding:10px 12px;background:rgba(255,255,255,.035);border-left:2px solid rgba(0,243,255,.45);min-height:68px}.stat.wide{grid-column:1/-1}.stat label{display:block;font-family:'Press Start 2P';font-size:7px;line-height:1.4;color:var(--cyan);margin-bottom:7px}.stat p{margin:0;font-size:18px;line-height:1.12;color:#eef5ff}.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{font-family:'Press Start 2P';font-size:6px;padding:6px 7px;line-height:1.4;border:1px solid rgba(0,243,255,.42);background:rgba(0,243,255,.07)}
+    .tenure-row{display:flex;align-items:center;gap:13px}.gauge{height:15px;flex:1;background:#09101a;border:1px solid #394356;padding:2px}.gauge-fill{height:100%;width:0;background:linear-gradient(90deg,var(--pink),var(--yellow));box-shadow:0 0 12px var(--pink);transition:width .9s cubic-bezier(.22,1,.36,1)}.tenure-value{font-family:'Press Start 2P';font-size:8px;color:var(--yellow);white-space:nowrap}
+    footer{position:relative;z-index:5;padding:10px 22px 17px;background:linear-gradient(0deg,rgba(3,5,15,.98),rgba(3,5,15,.78));border-top:2px solid rgba(255,0,85,.45)}.footer-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;color:var(--muted);font-family:'Press Start 2P';font-size:7px}.roster{display:flex;gap:10px;overflow-x:auto;padding:7px 4px 12px;scroll-behavior:smooth;scrollbar-color:var(--pink) #07101b}.fighter{position:relative;cursor:pointer;flex:0 0 82px;height:82px;padding:0;border:2px solid #344157;background:#0a0f1d;overflow:hidden;filter:saturate(.55);transition:.18s;box-shadow:4px 4px 0 #02030a}.fighter img{width:100%;height:100%;object-fit:cover}.fighter span{position:absolute;inset:auto 0 0;padding:3px 2px;background:rgba(0,0,0,.8);color:#fff;font-family:'Press Start 2P';font-size:5px;line-height:1.35;text-align:center}.fighter:hover{filter:saturate(1);transform:translateY(-4px);border-color:var(--cyan)}.fighter.active{filter:saturate(1.1);border-color:var(--yellow);transform:translateY(-7px) scale(1.04);box-shadow:0 0 18px rgba(255,230,0,.65),4px 5px 0 var(--pink)}
+    .toast{position:fixed;z-index:60;left:50%;top:88px;transform:translate(-50%,-20px);opacity:0;padding:12px 16px;background:#050a14;border:2px solid var(--cyan);font-family:'Press Start 2P';font-size:8px;line-height:1.45;pointer-events:none;transition:.25s;box-shadow:0 0 24px rgba(0,243,255,.35)}.toast.show{opacity:1;transform:translate(-50%,0)}
+    .flash{animation:screenFlash .35s ease}@keyframes screenFlash{35%{filter:brightness(1.7) saturate(1.4)}}
+    @media(max-width:900px){header{align-items:flex-start;flex-direction:column}.top-actions{width:100%;justify-content:flex-start}.main{grid-template-columns:1fr}.dossier{max-height:none}.portrait-panel{min-height:520px}.world-map{width:135vw}.vignette{box-shadow:inset 0 0 80px 18px #000}}
+    @media(max-width:560px){.main{padding:12px}.stats{grid-template-columns:1fr}.stat.wide{grid-column:auto}.dossier{padding:17px}.fighter{flex-basis:68px;height:68px}.brand h1{font-size:12px}.arcade-btn{font-size:7px;padding:9px}}
+  </style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="bg-layer" id="cityBg"></div>
+  <div id="mapBg" aria-hidden="true">
+    <svg class="world-map" viewBox="0 0 1000 500" role="img" aria-label="Glowing world map">
+      <path d="M71 166l37-48 83-30 76 18 32 32-17 29-55 7-22 40-43 12-21 47-38-11-19-53zM227 280l38 17 28 58-19 86-29-9-15-73-28-49z"/>
+      <path d="M411 128l41-32 79 5 32 24 58 1 21 31-37 33-35 6-13 49-43 21-48-27-17-53-34-18zM532 267l53 9 46 51-7 86-47 45-24-47-31-54z"/>
+      <path d="M650 122l68-36 119 19 75 54-13 45-70 17-32 48-49-9-21-40-50-10-34-44zM797 350l40-33 75 23 16 48-52 43-61-21z"/>
+      <path class="route" d="M175 195Q420 45 755 175T860 375"/>
+      <circle class="target" cx="180" cy="195" r="30"/><circle class="target" cx="760" cy="175" r="24" style="animation-delay:.45s"/><circle class="target" cx="860" cy="375" r="20" style="animation-delay:.8s"/>
+    </svg>
+  </div>
+  <div class="scanlines"></div><div class="noise"></div><div class="vignette"></div>
+  <header>
+    <div class="brand"><small>PROJECT MANAGEMENT // GLOBAL SQUAD</small><h1>PM TEAM SELECTION<br>CHOOSE YOUR FIGHTER</h1></div>
+    <div class="top-actions">
+      <button class="arcade-btn alt" id="worldBtn">WORLD MAP</button>
+    </div>
+  </header>
+  <main class="main">
+    <section class="panel portrait-panel">
+      <div class="portrait-wrap"><div class="stage-tag" id="stageTag">STAGE: WORLD MAP</div><img class="portrait" id="portrait" alt="Selected team member portrait"><video class="portrait-video" id="portraitVideo" autoplay loop muted playsinline style="display:none"></video><div class="video-tag" id="videoTag" style="display:none">● LIVE CLIP</div></div>
+      <div class="identity"><p class="eyebrow">PLAYER 01 // READY</p><h2 class="fighter-name" id="fighterName">SELECT<br>A FIGHTER</h2><div class="role" id="roleBadge">PROJECT MANAGEMENT</div></div>
+    </section>
+    <section class="panel dossier">
+      <div class="dossier-head"><div><div class="eyebrow">CLASSIFIED PERSONNEL FILE</div><h2>FIGHTER DOSSIER</h2></div><div class="record" id="recordNo">REC // 000</div></div>
+      <div class="special"><span class="label">SIGNATURE SPECIAL MOVE</span><strong id="funFact">Select a team member to reveal their special move.</strong></div>
+      <div class="stats">
+        <div class="stat wide"><label>COMPANY TENURE // 10-YEAR POWER GAUGE</label><div class="tenure-row"><div class="gauge"><div class="gauge-fill" id="tenureGauge"></div></div><span class="tenure-value" id="tenureText">0 YEARS</span></div></div>
+        <div class="stat wide"><label>MAIN RESPONSIBILITIES</label><p id="responsibilities">Awaiting fighter data...</p></div>
+        <div class="stat wide"><label>AREAS OF EXPERTISE</label><div class="chips" id="expertise"></div></div>
+        <div class="stat"><label>LANGUAGES SPOKEN</label><p id="languages">—</p></div>
+        <div class="stat"><label>FAVORITE HOBBY</label><p id="hobby">—</p></div>
+        <div class="stat"><label>FAVORITE FOOD</label><p id="food">—</p></div>
+        <div class="stat"><label>DREAM DESTINATION</label><p id="travel">—</p></div>
+      </div>
+    </section>
+  </main>
+  <footer><div class="footer-head"><span>FIGHTER ROSTER</span><span>USE ← → ARROW KEYS</span></div><div class="roster" id="roster" aria-label="Project management team roster"></div></footer>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+(() => {
+  'use strict';
+  // Shared SharePoint PMteam folder (source of truth for headshots + clips).
+  const PHOTO_BASE = 'https://equipnet0-my.sharepoint.com/personal/dpalacio_equipnet_com/Documents/PMteam/';
+  const PHOTO_FILES = {aaron:'Aaron.jpg',bailey:'Bailey.jpg',bill:'Bill.jpg',crystal:'Crystal.jpg',david:'David.jpg',elba:'Elba.jpg',joanna:'Joanna.jpg',juliana:'Juliana.jpeg',kevin:'Kevin.jpg',khyati:'Khyati.jpg',lauren:'Lauren.jpg',laurie:'Laurie.jpg',lena:'Lena.jpg',mike:'Mike.jpg',quincy:'Quincy.png',ryan:'Ryan.jpg',sal:'Sal.jpg',simon:'Simon.jpg',willie:'Willie.jpg'};
+  const VIDEO_FILES = {lena:'Lena_vid.mp4'};
+  // Full roster sourced from pm team.xlsx.
+  const TEAM = [
+    {'Name':"Elba Boria",'Location (City/Country)':'Caguas, USA','Current Role':'Project Manager','Years with Company':'','Main Responsibilities':'','Areas of Expertise':'','Languages Spoken':'','Favorite Hobby':'','Favorite Food':'','Fun Fact':'','Dream Travel Destination':''},
+    {'Name':'Bill Condon','Location (City/Country)':'Canton, USA','Current Role':'Director of Project Management','Years with Company':'','Main Responsibilities':'','Areas of Expertise':'','Languages Spoken':'','Favorite Hobby':'','Favorite Food':'','Fun Fact':'','Dream Travel Destination':''},
+    {'Name':"Aaron D'Souza",'Location (City/Country)':'Goa, India','Current Role':'Project Manager','Years with Company':'8 years','Main Responsibilities':'Offsite and Onsite Project Management, Onsite Inventory, Scoping Visits, Quarterly Track A Reporting, etc.','Areas of Expertise':'Sales and Reporting','Languages Spoken':'English, Hindi, Marathi, Konkani','Favorite Hobby':'Riding my motorbike on the race track','Favorite Food':'Japanese','Fun Fact':'Managed fixed-wing UAV flight operations for mapping and surveillance applications prior to my role at EquipNet.','Dream Travel Destination':'Japan'},
+    {'Name':'Mike Hudson','Location (City/Country)':'Bridgend, United Kingdom','Current Role':'Project Manager','Years with Company':'','Main Responsibilities':'','Areas of Expertise':'','Languages Spoken':'','Favorite Hobby':'','Favorite Food':'','Fun Fact':'','Dream Travel Destination':''},
+    {'Name':'Joanna Kozoswist','Location (City/Country)':'Bridgend, United Kingdom','Current Role':'EMEA Project Manager','Years with Company':'','Main Responsibilities':'','Areas of Expertise':'','Languages Spoken':'','Favorite Hobby':'','Favorite Food':'','Fun Fact':'','Dream Travel Destination':''},
+    {'Name':'Quincy Monsorate','Location (City/Country)':'Mumbai, India','Current Role':'PM Associate','Years with Company':'','Main Responsibilities':'','Areas of Expertise':'','Languages Spoken':'','Favorite Hobby':'','Favorite Food':'','Fun Fact':'','Dream Travel Destination':''},
+    {'Name':'Sal Olivo','Location (City/Country)':'Canton, USA','Current Role':'Equipment Specialist / Project Manager','Years with Company':'','Main Responsibilities':'','Areas of Expertise':'','Languages Spoken':'','Favorite Hobby':'','Favorite Food':'','Fun Fact':'','Dream Travel Destination':''},
+    {'Name':'Simon Smith','Location (City/Country)':'Peterborough, UK','Current Role':'Project Manager','Years with Company':'14 years','Main Responsibilities':'Key accounts: J&J, Sanofi, GSK, MSD','Areas of Expertise':'Communication at all levels, negotiation, organisation','Languages Spoken':'English','Favorite Hobby':'','Favorite Food':'','Fun Fact':'','Dream Travel Destination':''},
+    {'Name':'Willie Strong','Location (City/Country)':'USA','Current Role':'Equipment Specialist / Project Manager','Years with Company':'','Main Responsibilities':'','Areas of Expertise':'','Languages Spoken':'','Favorite Hobby':'','Favorite Food':'','Fun Fact':'','Dream Travel Destination':''},
+    {'Name':'Symau Tamwo','Location (City/Country)':'Ely, UK','Current Role':'Project Manager','Years with Company':'10 Months','Main Responsibilities':'Customer success management, Team Coordination','Areas of Expertise':'Engineering, finance, DIY','Languages Spoken':'English, French, Italian','Favorite Hobby':'Reading, Walking, Relaxing','Favorite Food':'Lasagna','Fun Fact':'I have lived in 5 countries','Dream Travel Destination':'Anywhere there are happy and thoughtful people.'},
+    {'Name':'Lauren Underdown','Location (City/Country)':'Bridgend, United Kingdom','Current Role':'UK & European Project Manager','Years with Company':'','Main Responsibilities':'','Areas of Expertise':'','Languages Spoken':'','Favorite Hobby':'','Favorite Food':'','Fun Fact':'','Dream Travel Destination':''},
+    {'Name':'Crystal Carpenter','Location (City/Country)':'Orcutt, California, USA','Current Role':'Customer Success Manager at EquipNet','Years with Company':'1 month','Main Responsibilities':'Supporting seller accounts, coordinating equipment listings and auctions, and helping with logistics and buyer inquiries','Areas of Expertise':'Business administration and customer support','Languages Spoken':'English','Favorite Hobby':'Cooking','Favorite Food':'Quesabirria','Fun Fact':'I went to culinary school before earning my Bachelors in Business Administration','Dream Travel Destination':'Portugal'},
+    {'Name':'Juliana Gutierrez Martinez','Location (City/Country)':'Quebec, Canada','Current Role':'Project Manager','Years with Company':'5 years','Main Responsibilities':'Project Management and ARMS support','Areas of Expertise':'Project Management and ARMS support','Languages Spoken':'Spanish, English and French','Favorite Hobby':'Crochet, hiking and gym','Favorite Food':'Pizza and Ice cream','Fun Fact':"I'm currently trying to learn to play chess, and I've won 95 Duolingo chess matches!",'Dream Travel Destination':'China and Japan'},
+    {'Name':'Ryan Hynes','Location (City/Country)':'Colonia, New Jersey, USA','Current Role':'Onsite Project Manager - Merck','Years with Company':'2 months','Main Responsibilities':'Forward Flow Project Management','Areas of Expertise':'Bio Pharmaceutical Vertical. Reverse Supply Chain Logistics. Cross Functional Leadership and Relationship Management.','Languages Spoken':'English','Favorite Hobby':'Coaching Football/Nature','Favorite Food':'Any Carb that is not good for me. Meat and Potatoes kind of guy.','Fun Fact':'Avid Memorabilia Collector.','Dream Travel Destination':''},
+    {'Name':'Khyati K.','Location (City/Country)':'Mumbai, India','Current Role':'Director & Sr. Project Manager','Years with Company':'14 years','Main Responsibilities':'Project Management, Admin & Finance for APAC office, Sales and growing the APAC business.','Areas of Expertise':'Project Management','Languages Spoken':'English, Hindi, Marathi, Kannada','Favorite Hobby':'Riding my motorcycle & dancing','Favorite Food':'Thai & Italian','Fun Fact':"If it weren't a life in the corporate, I would have probably pursued a career in dancing or in the travel industry (I am IATA certified so probably a travel agency of my own!!)",'Dream Travel Destination':'Alaska & Norway'},
+    {'Name':'Lena Morano','Location (City/Country)':'Jamestown, New York, USA','Current Role':'Senior Project Manager','Years with Company':'4 years','Main Responsibilities':'Project management. Serving as an escalation point. New PM training.','Areas of Expertise':'PMP Certified.','Languages Spoken':'English','Favorite Hobby':'I like to do "Grandma Hobbies" like quilting, crochet, reading, and baking. I also enjoy walking my dog and going to the gym.','Favorite Food':"Pasta with my Papa's sauce.",'Fun Fact':'I love to sing. I am classically trained.','Dream Travel Destination':'Ireland and Scotland'},
+    {'Name':'David Palacio','Location (City/Country)':'Bogota, Colombia','Current Role':'Project Manager','Years with Company':'1 year','Main Responsibilities':'Project Management','Areas of Expertise':'Project Management','Languages Spoken':'English, Spanish and a bit of French','Favorite Hobby':'Video Games, carpentry','Favorite Food':'Steak','Fun Fact':'Classified — stay tuned.','Dream Travel Destination':'Iceland. Japan'},
+    {'Name':'Bailey Richardson','Location (City/Country)':'Christiansburg, Virginia, USA','Current Role':'Customer Success Manager','Years with Company':'1 month','Main Responsibilities':'Coordinating projects from start to finish, keeping everyone aligned and informed, and proactively handling the details that keep things moving.','Areas of Expertise':'Proactive communication, consistency, and follow-through.','Languages Spoken':'English & slowly learning Spanish','Favorite Hobby':'Hiking. I love being able to hit a mountain after work.','Favorite Food':"Popcorn. I'd eat it for every meal if I could.",'Fun Fact':'I have 27 nieces and nephews spread across 7 different states.','Dream Travel Destination':'Iceland. The scenery, hiking, and waterfalls are right up my alley.'},
+    {'Name':'Kevin Roman','Location (City/Country)':'San Juan, Puerto Rico','Current Role':'Project Manager / Equipment Specialist','Years with Company':'2+ years','Main Responsibilities':'Supports EquipNet at Puerto Rico with main activities related to Project management, Logistics, Category Management and Sales.','Areas of Expertise':'Industrial Engineering/Quality Systems','Languages Spoken':'English/Spanish','Favorite Hobby':'Playing Tennis and Padel','Favorite Food':'Lasagna','Fun Fact':'I love churros','Dream Travel Destination':'Formula 1 Race at Italy'},
+    {'Name':'Laurie Wilson','Location (City/Country)':'Summerville, SC, USA','Current Role':'Senior Project Manager','Years with Company':'4 in October!','Main Responsibilities':'US Consumer projects; J&J','Areas of Expertise':'','Languages Spoken':'English','Favorite Hobby':'I love to read and crochet','Favorite Food':'Too many to name!','Fun Fact':"I have 3 kids, 2 in college and 1 who's a senior in high school",'Dream Travel Destination':'Austria'}
+  ];
+  const cityImages = {
+    tokyo:'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=1800&q=85',
+    london:'https://images.unsplash.com/photo-1533929736458-ca588d08c8be?auto=format&fit=crop&w=1800&q=85',
+    bogota:'https://images.unsplash.com/photo-1533699224246-6dc3b3ed3304?auto=format&fit=crop&w=1800&q=85',
+    paris:'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1800&q=85',
+    newyork:'https://images.unsplash.com/photo-1522083165195-3424ed129620?auto=format&fit=crop&w=1800&q=85',
+    mumbai:'https://images.unsplash.com/photo-1566552881560-0be862a7c445?auto=format&fit=crop&w=1800&q=85',
+    india:'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=1800&q=85',
+    canada:'https://images.unsplash.com/photo-1503614472-8c93d56e92ce?auto=format&fit=crop&w=1800&q=85',
+    usa:'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=1800&q=85',
+    default:'https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1800&q=85'
+  };
+  const cityKeywords = [
+    ['tokyo','japan'],['london','peterborough','ely','bridgend',' uk','united kingdom'],
+    ['bogota','bogotá','colombia'],['paris','france'],
+    ['newyork','new york','jamestown','newjersey','new jersey','colonia'],
+    ['mumbai'],['india','goa'],['canada','quebec'],
+    ['usa','california','orcutt','virginia','christiansburg','carolina','summerville','puertorico','puerto rico','sanjuan','san juan','caguas','canton']
+  ];
+  const cityKeys = ['tokyo','london','bogota','paris','newyork','mumbai','india','canada','usa'];
+  let selected = 0, audioCtx;
+  const $ = id => document.getElementById(id);
+  const els = {app:$('app'),cityBg:$('cityBg'),portrait:$('portrait'),portraitVideo:$('portraitVideo'),videoTag:$('videoTag'),stageTag:$('stageTag'),fighterName:$('fighterName'),roleBadge:$('roleBadge'),recordNo:$('recordNo'),funFact:$('funFact'),tenureGauge:$('tenureGauge'),tenureText:$('tenureText'),responsibilities:$('responsibilities'),expertise:$('expertise'),languages:$('languages'),hobby:$('hobby'),food:$('food'),travel:$('travel'),roster:$('roster'),toast:$('toast')};
+  function tone(freq=440,duration=.06,type='square',volume=.025){try{audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.setValueAtTime(freq,audioCtx.currentTime);g.gain.setValueAtTime(volume,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+duration);o.connect(g).connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+duration)}catch(e){}}
+  const text=(v,fallback='—')=>String(v??'').trim()||fallback;
+  function notify(msg){els.toast.textContent=msg;els.toast.classList.add('show');clearTimeout(notify.t);notify.t=setTimeout(()=>els.toast.classList.remove('show'),2600)}
+  function avatar(name){const initials=text(name,'PM').split(/\s|,/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();const c=document.createElement('canvas');c.width=900;c.height=1100;const x=c.getContext('2d'),h=[185,195,205,315,325][[...text(name)].reduce((a,ch)=>a+ch.charCodeAt(0),0)%5];x.fillStyle='#050714';x.fillRect(0,0,c.width,c.height);const g=x.createRadialGradient(450,420,30,450,480,530);g.addColorStop(0,`hsl(${h} 95% 45%)`);g.addColorStop(1,'#050714');x.fillStyle=g;x.fillRect(0,0,c.width,c.height);x.strokeStyle='#00f3ff';x.lineWidth=9;for(let i=0;i<8;i++)x.strokeRect(70+i*15,70+i*15,760-i*30,960-i*30);x.fillStyle='rgba(0,0,0,.32)';x.beginPath();x.arc(450,390,190,0,Math.PI*2);x.fill();x.fillRect(220,570,460,410);x.font='bold 245px monospace';x.textAlign='center';x.textBaseline='middle';x.shadowColor='#ff0055';x.shadowBlur=35;x.fillStyle='#fff';x.fillText(initials,450,470);return c.toDataURL('image/png')}
+  function firstKey(name){return text(name,'').split(/[\s,]+/).filter(Boolean)[0]?.toLowerCase().replace(/[^a-z]/g,'')}
+  function photoFor(p){const key=firstKey(p.Name);if(key&&PHOTO_FILES[key])return PHOTO_BASE+PHOTO_FILES[key];return avatar(p.Name)}
+  function videoFor(p){const key=firstKey(p.Name);return key&&VIDEO_FILES[key]?PHOTO_BASE+VIDEO_FILES[key]:null}
+  function getCity(location){const s=text(location,'').toLowerCase();for(let i=0;i<cityKeywords.length;i++){if(cityKeywords[i].some(k=>s.includes(k)))return cityKeys[i]}return 'default'}
+  function yearsOf(v){const n=parseFloat(String(v??'').replace(',','.').match(/\d+(?:\.\d+)?/)?.[0]||0);if(/month/i.test(String(v)))return n/12;return n}
+  function renderRoster(){els.roster.innerHTML='';TEAM.forEach((p,i)=>{const b=document.createElement('button');b.className='fighter'+(i===selected?' active':'');b.type='button';b.setAttribute('aria-label',`Select ${text(p.Name,'fighter')}`);const img=document.createElement('img');img.src=photoFor(p);img.alt='';img.onerror=()=>{img.src=avatar(p.Name)};const s=document.createElement('span');s.textContent=text(p.Name,'Fighter').split(',')[0];b.append(img,s);b.addEventListener('mouseenter',()=>tone(220,.035,'square',.012));b.addEventListener('click',()=>select(i));els.roster.appendChild(b)})}
+  function setText(id,value){els[id].textContent=text(value)}
+  function select(i,quiet=false){selected=(i+TEAM.length)%TEAM.length;const p=TEAM[selected];const clip=videoFor(p);els.portrait.classList.add('swap');setTimeout(()=>{els.portrait.src=photoFor(p);els.portrait.onerror=()=>{els.portrait.src=avatar(p.Name)};els.portrait.classList.remove('swap');if(clip){els.portraitVideo.src=clip;els.portraitVideo.style.display='block';els.videoTag.style.display='block';els.portrait.style.display='none';els.portraitVideo.play().catch(()=>{})}else{els.portraitVideo.pause();els.portraitVideo.removeAttribute('src');els.portraitVideo.style.display='none';els.videoTag.style.display='none';els.portrait.style.display='block'}},160);const location=text(p['Location (City/Country)'],'Unknown Stage');setText('stageTag','STAGE: '+location.toUpperCase());setText('fighterName',text(p.Name,'Unknown Fighter').replace(',','\n'));els.fighterName.style.whiteSpace='pre-line';setText('roleBadge',p['Current Role']||'Project Management');setText('recordNo','REC // '+String(selected+1).padStart(3,'0'));setText('funFact',p['Fun Fact']||'Special move classified.');setText('responsibilities',p['Main Responsibilities']);setText('languages',p['Languages Spoken']);setText('hobby',p['Favorite Hobby']);setText('food',p['Favorite Food']);setText('travel',p['Dream Travel Destination']);
+    els.expertise.innerHTML='';text(p['Areas of Expertise'],'Project Management').split(/[;,|\n]/).map(x=>x.trim()).filter(Boolean).forEach(v=>{const c=document.createElement('span');c.className='chip';c.textContent=v;els.expertise.appendChild(c)});
+    const y=yearsOf(p['Years with Company']);setText('tenureText',text(p['Years with Company'],`${y} YEARS`).toUpperCase());requestAnimationFrame(()=>els.tenureGauge.style.width=Math.min(100,Math.max(0,y/10*100))+'%');
+    const city=getCity(location);els.cityBg.style.backgroundImage=`url("${cityImages[city]}")`;els.cityBg.classList.add('show');els.app.classList.add('city-mode');renderRoster();els.roster.children[selected]?.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});if(!quiet){tone(510,.055);setTimeout(()=>tone(720,.08,'square',.025),55);els.app.classList.remove('flash');void els.app.offsetWidth;els.app.classList.add('flash')}
+  }
+  function toWorld(){els.app.classList.remove('city-mode');els.cityBg.classList.remove('show');setText('stageTag','STAGE: WORLD MAP');tone(180,.09,'sawtooth',.02)}
+  $('worldBtn').addEventListener('click',toWorld);
+  document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){e.preventDefault();select(selected+1)}else if(e.key==='ArrowLeft'){e.preventDefault();select(selected-1)}else if(e.key==='Escape'||e.key.toLowerCase()==='m'){toWorld()}});
+  document.addEventListener('pointerdown',()=>{try{audioCtx ||= new (window.AudioContext||window.webkitAudioContext)()}catch(e){}},{once:true});
+  renderRoster();select(0,true);notify(`ROSTER READY // ${TEAM.length} FIGHTERS LOADED`);
+})();
+</script>
+</body>
+</html>
